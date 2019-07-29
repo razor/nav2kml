@@ -14,7 +14,10 @@ int main(int argc, char *argv[]) {
 	char ifn[255];
 	char ofn[255];
 	int mode;
-
+	if (argc != 7) {
+		usage();
+		return 1;
+	}
 	while ((opt = getopt(argc, argv, OPTSTR)) != -1) {
 		if (opt == 't') {
 			if (!strcmp(optarg, "aid")) {
@@ -39,7 +42,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	convert(ifn, ofn, mode);
-
+	return 0;
 }
 
 int convert(const char *ifn, const char *ofn, int mode) {
@@ -47,10 +50,12 @@ int convert(const char *ifn, const char *ofn, int mode) {
 	FILE *iptfile = fopen(ifn, "r");
 	if (!iptfile) {
 		printf("Error: open input file failed.\n");
+		return 1;
 	}
 	FILE *optfile = fopen(ofn, "w");
 	if (!optfile) {
 		printf("Error: open output file failed.\n");
+		return 1;
 	}
 
 	void *navobj = NULL;
@@ -111,6 +116,9 @@ int parseaid(const char *line, void *navobj) {
 	//COL 44-54 Longitude ( -Lon for West) fff.ff     
 	//COL 55-60 Frequency (MHz for ILS/VOR KHz for NDB) See Note Below C          
 	//Col 61 Class
+	char khz[] = KHZ;
+	char mhz[] = MHZ;
+
 	navaid *aid = (navaid *)navobj;
 	memset(aid, 0, sizeof(navaid));
 
@@ -119,6 +127,18 @@ int parseaid(const char *line, void *navobj) {
 	memcpy(aid->type, line + 28, 4);
 	memcpy(aid->lat, line + 33, 10);
 	memcpy(aid->lon, line + 43, 10);
+	memcpy(aid->freq, line + 54, 7);
+
+	char *frequnit = NULL;
+	if (strstr(aid->type, "VOR") || strstr(aid->type, "DME") || strstr(aid->type, "ILS")) {
+		frequnit = mhz;
+	}
+	else {
+		frequnit = khz;
+	}
+	int freqlast = strlen(aid->freq) - 1;
+	if (*(aid->freq+freqlast) >= '0' && *(aid->freq + freqlast) <= '9') snprintf(aid->freq + freqlast + 1, 4, "%s", frequnit);
+	else snprintf(aid->freq+freqlast, 4, "%s", frequnit);
 
 	//printf("%s, %s, %s, %s\n", aid->id, aid->type, aid->lat, aid->lon);
 	return 0;
@@ -151,10 +171,12 @@ int writekmlhead(FILE *optfile, int mode) {
 
 int writeaid(FILE *optfile, void *navobj) {
 	char buf[512];
+	char desc[64];
 	int ret = 0;
 
 	navaid *aid = (navaid *)navobj;
-	snprintf(buf, sizeof(buf), PLACEMARK_TPL, aid->id, aid->name, aid->lon, aid->lat);
+	snprintf(desc, sizeof(desc), "%s %s %s", aid->name, aid->type, aid->freq);
+	snprintf(buf, sizeof(buf), PLACEMARK_TPL, aid->id, desc, aid->lon, aid->lat);
 	ret = fputs(buf, optfile);
 	if (!ret) return -1;
 }

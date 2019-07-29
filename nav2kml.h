@@ -6,6 +6,8 @@
 #define KML_FOLDER_TPL "<Folder>\n<name>%s</name>\n<description>%s</description>\n"
 #define KML_FOLDER_END "</Folder>\n"
 #define PLACEMARK_TPL "<Placemark>\n<name>%s</name>\n<description>%s</description>\n<Point><coordinates>%s, %s</coordinates></Point></Placemark>\n"
+#define KHZ "KHz"
+#define MHZ "MHz"
 
 typedef struct navaid {
 	//COL 1-24 Facility Name IIII
@@ -24,7 +26,7 @@ typedef struct navaid {
 	char type[5];
 	char lat[11];
 	char lon[11];
-	char freq[8];
+	char freq[12];
 } navaid;
 
 typedef struct navfix {
