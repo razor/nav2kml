@@ -96,7 +96,7 @@ int convert(const char *ifn, const char *ofn, int mode) {
 }
 
 void usage() {
-	printf("usage: nav2kml aid/fix input output.\n");
+	printf("usage: nav2kml -t aid/fix -i inputfile -o outputfile.\n");
 }
 
 int parseaid(const char *line, void *navobj) {
