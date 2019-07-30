@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
 	int mode;
 	if (argc != 7) {
 		usage();
-		return 1;
+		return -1;
 	}
 	while ((opt = getopt(argc, argv, OPTSTR)) != -1) {
 		if (opt == 't') {
@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
 			}
 			else {
 				usage();
-				return 1;
+				return -1;
 			}
 		}
 
@@ -41,8 +41,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	convert(ifn, ofn, mode);
-	return 0;
+	return convert(ifn, ofn, mode);
 }
 
 int convert(const char *ifn, const char *ofn, int mode) {
@@ -91,13 +90,20 @@ int convert(const char *ifn, const char *ofn, int mode) {
 		*(line + nread - 1) = 0;
 		if (*line == ';') continue;
 		ret = parsefunc(line, navobj);
+		if (ret) {
+			printf("File format error.\n");
+			break;
+		}
 		ret = writefunc(optfile, navobj);
+		if (ret) {
+			printf("File write error.\n");
+			break;
+		}
 	}
 	writekmlend(optfile);
 	free(line);
 	fclose(iptfile);
 	fclose(optfile);
-
 }
 
 void usage() {
@@ -118,6 +124,8 @@ int parseaid(const char *line, void *navobj) {
 	//Col 61 Class
 	char khz[] = KHZ;
 	char mhz[] = MHZ;
+
+	if (strlen(line) < 61) return -1;
 
 	navaid *aid = (navaid *)navobj;
 	memset(aid, 0, sizeof(navaid));
@@ -143,10 +151,13 @@ int parseaid(const char *line, void *navobj) {
 	//printf("%s, %s, %s, %s\n", aid->id, aid->type, aid->lat, aid->lon);
 	return 0;
 }
+
 int parsefix(const char *line, void *navobj) {
 	//Col 1-5 & 25-30 Fix Name dd.dddddd  
 	//Col 32-40 Latitude degrees (-Lat for South, sign Col 31)ddd.dddddd  
-	//Col 41-51 Longitude degrees (-Lon for West, decimal always Col 45)       
+	//Col 41-51 Longitude degrees (-Lon for West, decimal always Col 45)      
+
+	if (strlen(line) < 51) return -1;
 	navfix *fix = (navfix *)navobj;
 	memset(fix, 0, sizeof(navfix));
 
@@ -167,6 +178,7 @@ int writekmlhead(FILE *optfile, int mode) {
 	snprintf(buf, sizeof(buf), KML_FOLDER_TPL, (mode == MODE_AID) ? "AID" : "FIX", "");
 	ret = fputs(buf, optfile);
 	if (!ret) return -1;
+	return 0;
 }
 
 int writeaid(FILE *optfile, void *navobj) {
@@ -179,6 +191,7 @@ int writeaid(FILE *optfile, void *navobj) {
 	snprintf(buf, sizeof(buf), PLACEMARK_TPL, aid->id, desc, aid->lon, aid->lat);
 	ret = fputs(buf, optfile);
 	if (!ret) return -1;
+	return 0;
 }
 
 int writefix(FILE *optfile, void *navobj) {
@@ -189,6 +202,7 @@ int writefix(FILE *optfile, void *navobj) {
 	snprintf(buf, sizeof(buf), PLACEMARK_TPL, fix->name2, fix->name, fix->lon, fix->lat);
 	ret = fputs(buf, optfile);
 	if (!ret) return -1;
+	return 0;
 }
 
 int writekmlend(FILE *optfile) {
@@ -197,4 +211,5 @@ int writekmlend(FILE *optfile) {
 	if (!ret) return -1;
 	ret = fputs(KML_END, optfile);
 	if (!ret) return -1;
+	return 0;
 }
