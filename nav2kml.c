@@ -83,7 +83,7 @@ int convert(const char *ifn, const char *ofn, int mode) {
 
 	writekmlhead(optfile, mode);
 
-	while (nread = getline(&line, &len, iptfile)) {
+	while ((nread = getline(&line, &len, iptfile))) {
 		if (nread == -1) {
 			break;
 		}
@@ -104,6 +104,7 @@ int convert(const char *ifn, const char *ofn, int mode) {
 	free(line);
 	fclose(iptfile);
 	fclose(optfile);
+	return 0;
 }
 
 void usage() {
